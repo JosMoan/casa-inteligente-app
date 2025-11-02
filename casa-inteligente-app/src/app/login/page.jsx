@@ -14,7 +14,7 @@ export default function LoginPage() {
     setError("");
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/login", {
+      const response = await fetch("http://localhost:5000/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -27,7 +27,7 @@ export default function LoginPage() {
         throw new Error(data.detail || "Error en el inicio de sesión");
       }
 
-      // Guardar usuario logueado (desde BD)
+      // Guardar usuario logueado
       localStorage.setItem("user", JSON.stringify(data.usuario));
 
       router.push("/dashboard");
@@ -39,8 +39,7 @@ export default function LoginPage() {
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-black relative overflow-hidden text-white">
-      {/* Fondo efecto radial */}
-      <div className="absolute top-1/2 left-1/2 w-[1000px] h-[1000px] -translate-x-1/2 -translate-y-1/2 bg-[radial-gradient(circle_at_center,_#2b47ff_0%,_#8a2be2_35%,_transparent_70%)] opacity-60 blur-3xl"></div>
+      <div className="absolute top-1/2 left-1/2 w-[1000px] h-[1000px] -translate-x-1/2 -translate-y-1/2 bg-[radial-gradient(circle_at_center,#2b47ff_0%,#8a2be2_35%,_transparent_70%)] opacity-60 blur-3xl"></div>
 
       <div className="flex flex-col md:flex-row items-center justify-center w-full max-w-6xl relative z-10 px-6">
         {/* Ilustración */}
@@ -113,7 +112,7 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/*Enlace al registro */}
+          {/* Enlace al registro */}
           <p className="text-center text-sm text-gray-600 mt-6">
             ¿No tienes una cuenta?{" "}
             <span
