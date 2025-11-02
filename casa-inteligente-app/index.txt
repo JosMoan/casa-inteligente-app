@@ -1,0 +1,27 @@
+
+------------------------------- COMANDOS PARA EL BACK DE python----------------------
+python -m venv venv - > comando para crear el entorno virtual de python y manejar las librerias y correr el back
+venv\Scripts\activate -> comando para entrar al servidor y poder correr o instalar librerias
+pip install -r requirements.txt -> comando para descargar las librerias que se usa dentro del entorno virtual
+deactivate -> comando para cerrar el entorno virtual
+pip list -> ver las librerias instaladas dentro del entorno
+uvicorn main:app --reload --port 5000 -> comando para correr el back 
+
+
+
+------------------------------------COMANDOS PARA EL FROND------------------------------------
+npm install -> descargar los modulos del proyecto (node_modules)
+npm run dev -> corre el proyecto de next
+
+
+------------------------------------COMANDOS PARA EL CONTROL DE VERSIONES----------------------
+git checkout -b "nombre de su rama" -> comando para crear una rama local para trabajar
+git branch -> ver en que rama esta
+git status -> Ver qué archivos cambiaron
+git add .  -> Agregar todos los cambios al área de preparación
+git commit -m "Descripción clara del cambio" -> comitear un cambio
+git push origin "nombre-rama" -> Envía tus cambios locales al repositorio remoto en la rama que indiques.
+git fetch origin -> traer los cambios de las ramas locales y el principal
+git merge origin/main -> Fusiona los cambios del main en tu rama
+git merge origin/rama-compañero -> Fusiona los cambios de tu compañero a tu rama
+git merge --abort -> abortar el merge por si hay conflictos
