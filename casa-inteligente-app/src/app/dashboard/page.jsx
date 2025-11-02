@@ -25,7 +25,7 @@ export default function Dashboard() {
       <main className="min-h-screen bg-gray-900 text-white py-12">
         <div className="max-w-4xl mx-auto px-6">
           <h2 className="text-3xl font-bold mb-6">
-            Panel de control {user && <span className="text-blue-400">({user.nombre})</span>}
+            Panel de control {user && <span className="text-blue-400">{user.nombre}</span>}
           </h2>
           <p className="text-gray-400 mb-10">
             Controla los dispositivos de tu casa inteligente
