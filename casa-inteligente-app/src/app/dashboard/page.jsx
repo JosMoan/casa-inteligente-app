@@ -7,10 +7,14 @@ import DeviceCard from "@/components/DeviceCard";
 export default function Dashboard() {
   const router = useRouter();
   const [user, setUser] = useState(null);
+
   const [devices, setDevices] = useState([
     { id: "cochera", name: "Luz Cochera", initial: false },
     { id: "cocina", name: "Luz Cocina", initial: false },
     { id: "dor1", name: "Dormitorio 1", initial: false },
+    { id: "dor2", name: "Dormitorio 2", initial: false }, // ✅ NUEVA TARJETA
+    { id: "sala", name: "Sala", initial: false }, // ✅ NUEVA TARJETA
+    { id: "bano", name: "Baño", initial: false }, // ✅ NUEVA TARJETA
   ]);
 
   useEffect(() => {
@@ -27,12 +31,13 @@ export default function Dashboard() {
           <h2 className="text-3xl font-bold mb-6">
             Panel de control {user && <span className="text-blue-400">{user.nombre}</span>}
           </h2>
+
           <p className="text-gray-400 mb-10">
             Controla los dispositivos de tu casa inteligente
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {devices.map(d => (
+            {devices.map((d) => (
               <DeviceCard
                 key={d.id}
                 id={d.id}

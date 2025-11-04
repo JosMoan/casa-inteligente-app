@@ -30,7 +30,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- Endpoints básicos ---
 @app.get("/")
 def read_root():
     return {"message": "API FastAPI funcionando ✅"}
@@ -46,7 +45,6 @@ def db_test():
     conn.close()
     return {"status": "ok", "database": db_name}
 
-# --- Registro de usuario ---
 @app.post("/register")
 def register_user(user: dict):
     conn = get_connection()
@@ -66,7 +64,6 @@ def register_user(user: dict):
     finally:
         conn.close()
 
-# --- Login ---
 @app.post("/login")
 def login_user(user: dict):
     conn = get_connection()
@@ -89,7 +86,7 @@ ESP_IP = "http://192.168.1.100"
 # --- Control de luces ---
 @app.post("/led/{room}/{state}")
 def control_led(room: str, state: str):
-    valid_rooms = ["cochera", "cocina", "dor1"]
+    valid_rooms = ["cochera", "cocina", "dor1", "dor2", "sala", "bano"]  # ✅
     valid_states = ["on", "off"]
 
     if room.lower() not in valid_rooms:
@@ -110,7 +107,7 @@ def control_led(room: str, state: str):
 # --- Obtener estado actual de los LEDs ---
 @app.get("/led/status")
 def get_led_status():
-    rooms = ["cochera", "cocina", "dor1"]
+    rooms = ["cochera", "cocina", "dor1", "dor2", "sala","bano"]  # ✅
     status = {}
     for room in rooms:
         try:

@@ -18,6 +18,9 @@ export default function DeviceCard({ id, name }) {
           if (id === "cochera") setState(data.cochera);
           else if (id === "cocina") setState(data.cocina);
           else if (id === "dor1") setState(data.dor1);
+          else if (id === "dor2") setState(data.dor2); // ✅ agregado
+          else if (id === "sala") setState(data.sala); // ✅ agregado
+          else if (id === "bano") setState(data.bano); // ✅ agregado
         }
       } catch (err) {
         console.error("❌ Error al obtener estado del LED:", err);
