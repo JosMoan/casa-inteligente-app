@@ -10,13 +10,15 @@ export default function RegisterPage() {
   const [nombre, setNombre] = useState("");
   const [correo, setCorreo] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
-  //FUNCIÓN PARA ENVIAR LOS DATOS AL BACKEND
+  // FUNCIÓN PARA ENVIAR LOS DATOS AL BACKEND
   const handleRegister = async (e) => {
     e.preventDefault();
+    setError("");
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/register", {
+      const res = await fetch("http://localhost:5000/register", { // ajusta la IP si es necesario
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -32,19 +34,20 @@ export default function RegisterPage() {
         alert("✅ Cuenta creada correctamente");
         router.push("/login"); // redirige al login
       } else {
-        alert("❌ Error: " + (data.message || "No se pudo crear la cuenta"));
+        setError(data.detail || "No se pudo crear la cuenta");
       }
     } catch (err) {
       console.error("❌ Error de conexión:", err);
-      alert("No se pudo conectar con el servidor");
+      setError("No se pudo conectar con el servidor");
     }
   };
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-black relative overflow-hidden text-white">
-      <div className="absolute top-1/2 left-1/2 w-[1000px] h-[1000px] -translate-x-1/2 -translate-y-1/2 bg-[radial-gradient(circle_at_center,_#2b47ff_0%,_#8a2be2_35%,_transparent_70%)] opacity-60 blur-3xl"></div>
+      <div className="absolute top-1/2 left-1/2 w-[1000px] h-[1000px] -translate-x-1/2 -translate-y-1/2 bg-[radial-gradient(circle_at_center,#2b47ff_0%,#8a2be2_35%,_transparent_70%)] opacity-60 blur-3xl"></div>
 
       <div className="flex flex-col md:flex-row items-center justify-center w-full max-w-6xl relative z-10 px-6">
+        {/* Ilustración */}
         <div className="flex flex-col items-center md:items-start justify-center text-center md:text-left w-full md:w-1/2 space-y-6">
           <h1 className="text-6xl font-extrabold">¡Crea tu cuenta!</h1>
           <p className="text-gray-300 text-lg max-w-md">
@@ -57,6 +60,7 @@ export default function RegisterPage() {
           />
         </div>
 
+        {/* Formulario */}
         <div className="bg-white rounded-2xl shadow-2xl w-full md:w-[420px] p-10 mt-10 md:mt-0">
           <div className="flex flex-col items-center mb-8">
             <div className="bg-green-100 p-4 rounded-full mb-4">
@@ -69,6 +73,7 @@ export default function RegisterPage() {
           </div>
 
           <form className="space-y-6" onSubmit={handleRegister}>
+            {/* Nombre */}
             <div>
               <label className="block text-gray-700 mb-2 text-sm font-medium">
                 Nombre de usuario
@@ -81,10 +86,12 @@ export default function RegisterPage() {
                   value={nombre}
                   onChange={(e) => setNombre(e.target.value)}
                   className="bg-transparent outline-none w-full text-gray-700 placeholder-gray-400"
+                  required
                 />
               </div>
             </div>
 
+            {/* Correo */}
             <div>
               <label className="block text-gray-700 mb-2 text-sm font-medium">
                 Correo electrónico
@@ -97,10 +104,12 @@ export default function RegisterPage() {
                   value={correo}
                   onChange={(e) => setCorreo(e.target.value)}
                   className="bg-transparent outline-none w-full text-gray-700 placeholder-gray-400"
+                  required
                 />
               </div>
             </div>
 
+            {/* Contraseña */}
             <div>
               <label className="block text-gray-700 mb-2 text-sm font-medium">
                 Contraseña
@@ -113,6 +122,7 @@ export default function RegisterPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="bg-transparent outline-none w-full text-gray-700 placeholder-gray-400"
+                  required
                 />
               </div>
               <p
@@ -123,6 +133,10 @@ export default function RegisterPage() {
               </p>
             </div>
 
+            {/* Error */}
+            {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+
+            {/* Botón */}
             <button
               type="submit"
               className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-semibold text-lg transition-colors cursor-pointer"
