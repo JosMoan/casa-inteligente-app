@@ -87,9 +87,9 @@ export default function Sidebar({ current, setCurrent, darkMode, setDarkMode }) 
                             </button>
 
                             <button
-                                onClick={() => setCurrent("puertas")}
+                                onClick={() => setCurrent("puerta")}
                                 className={`px-3 py-2 text-left rounded-lg transition cursor-pointer ${
-                                    current === "puertas"
+                                    current === "puerta"
                                         ? darkMode
                                             ? "bg-gray-700 text-white font-semibold"
                                             : "bg-blue-200 text-blue-800 font-semibold"

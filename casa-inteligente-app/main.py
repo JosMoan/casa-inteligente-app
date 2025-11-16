@@ -34,17 +34,7 @@ app.add_middleware(
 def read_root():
     return {"message": "API FastAPI funcionando ✅"}
 
-@app.get("/db-test")
-def db_test():
-    conn = get_connection()
-    if not conn:
-        return {"status": "error", "message": "❌ No se pudo conectar"}
-    cursor = conn.cursor()
-    cursor.execute("SELECT DATABASE();")
-    db_name = cursor.fetchone()
-    conn.close()
-    return {"status": "ok", "database": db_name}
-
+# --- Registro/Login usuarios ---
 @app.post("/register")
 def register_user(user: dict):
     conn = get_connection()
@@ -83,10 +73,10 @@ def login_user(user: dict):
 # --- IP del ESP8266 ---
 ESP_IP = "http://192.168.1.100"
 
-# --- Control de luces ---
+# --- Control de LEDs ---
 @app.post("/led/{room}/{state}")
 def control_led(room: str, state: str):
-    valid_rooms = ["cochera", "cocina", "dor1", "dor2", "sala", "bano"]  # ✅
+    valid_rooms = ["cochera", "cocina", "dor1", "dor2", "sala", "bano"]
     valid_states = ["on", "off"]
 
     if room.lower() not in valid_rooms:
@@ -104,10 +94,9 @@ def control_led(room: str, state: str):
     except requests.exceptions.RequestException as e:
         return {"status": "error", "message": str(e)}
 
-# --- Obtener estado actual de los LEDs ---
 @app.get("/led/status")
 def get_led_status():
-    rooms = ["cochera", "cocina", "dor1", "dor2", "sala","bano"]  # ✅
+    rooms = ["cochera", "cocina", "dor1", "dor2", "sala", "bano"]
     status = {}
     for room in rooms:
         try:
@@ -120,4 +109,42 @@ def get_led_status():
                 status[room] = None
         except requests.exceptions.RequestException:
             status[room] = None
+    return status
+
+# --- Control de puertas con servomotor ---
+@app.post("/door/{door_id}/{action}")
+def control_door(door_id: str, action: str):
+    valid_doors = ["p1", "p2", "p3"]
+    valid_actions = ["open", "close"]
+
+    if door_id.lower() not in valid_doors:
+        raise HTTPException(status_code=400, detail="Puerta no válida")
+    if action.lower() not in valid_actions:
+        raise HTTPException(status_code=400, detail="Acción inválida")
+
+    try:
+        url = f"{ESP_IP}/{door_id.upper()}_{action.upper()}"
+        response = requests.get(url, timeout=3)
+        if response.status_code == 200:
+            return {"status": "ok", "door": door_id, "action": action}
+        else:
+            return {"status": "error", "message": "ESP8266 no respondió"}
+    except requests.exceptions.RequestException as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/door/status")
+def get_door_status():
+    doors = ["p1", "p2", "p3", "p4"]  # incluir p4 como cochera
+    status = {}
+    for door in doors:
+        try:
+            url = f"{ESP_IP}/{door.upper()}_STATUS"
+            response = requests.get(url, timeout=3)
+            if response.status_code == 200:
+                text = response.text.strip().upper()
+                status[door] = True if text in ["OPEN", "ABIERTO"] else False
+            else:
+                status[door] = None
+        except requests.exceptions.RequestException:
+            status[door] = None
     return status
