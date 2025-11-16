@@ -81,7 +81,7 @@ def login_user(user: dict):
     return {"mensaje": "✅ Login exitoso", "usuario": usuario}
 
 # --- IP del ESP8266 ---
-ESP_IP = "http://192.168.1.100"
+ESP_IP = "http://192.168.1.20"
 
 # --- Control de luces ---
 @app.post("/led/{room}/{state}")
