@@ -19,7 +19,7 @@ def get_connection():
             return connection
     except Error as e:
         print("Error al conectar a MySQL:", e)
-        return None
+    return None
 
 # --- CORS ---
 app.add_middleware(
@@ -30,11 +30,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# --- IP del ESP8266 ---
+ESP_IP = "http://192.168.1.20"
+
+# -------------------- Rutas básicas --------------------
 @app.get("/")
 def read_root():
     return {"message": "API FastAPI funcionando ✅"}
 
-# --- Registro/Login usuarios ---
+# -------------------- Usuarios --------------------
 @app.post("/register")
 def register_user(user: dict):
     conn = get_connection()
@@ -70,10 +74,7 @@ def login_user(user: dict):
         raise HTTPException(status_code=401, detail="Credenciales incorrectas")
     return {"mensaje": "✅ Login exitoso", "usuario": usuario}
 
-# --- IP del ESP8266 ---
-ESP_IP = "http://192.168.1.20"
-
-# --- Control de LEDs ---
+# -------------------- LEDs --------------------
 @app.post("/led/{room}/{state}")
 def control_led(room: str, state: str):
     valid_rooms = ["cochera", "cocina", "dor1", "dor2", "sala", "bano"]
@@ -111,7 +112,7 @@ def get_led_status():
             status[room] = None
     return status
 
-# --- Control de puertas con servomotor ---
+# -------------------- Puertas (manuales) --------------------
 @app.post("/door/{door_id}/{action}")
 def control_door(door_id: str, action: str):
     valid_doors = ["p1", "p2", "p3"]
@@ -134,7 +135,7 @@ def control_door(door_id: str, action: str):
 
 @app.get("/door/status")
 def get_door_status():
-    doors = ["p1", "p2", "p3", "p4"]  # incluir p4 como cochera
+    doors = ["p1", "p2", "p3"]
     status = {}
     for door in doors:
         try:
@@ -148,3 +149,18 @@ def get_door_status():
         except requests.exceptions.RequestException:
             status[door] = None
     return status
+
+# -------------------- Cochera + Distancia (Arduino esclavo) --------------------
+@app.get("/garage/status")
+def garage_status():
+    try:
+        res = requests.get(f"{ESP_IP}/DISTANCIA", timeout=2)
+        if res.ok:
+            distancia, estado = res.text.strip().split(",")
+            return {
+                "door_open": True if estado.upper() == "OPEN" else False,
+                "distance_cm": int(distancia)
+            }
+    except requests.exceptions.RequestException:
+        pass
+    return {"door_open": None, "distance_cm": None}
