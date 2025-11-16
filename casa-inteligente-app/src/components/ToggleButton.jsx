@@ -23,11 +23,18 @@ export default function ToggleButton({ deviceId, initial = false, disabled, onTo
     <button
       onClick={handleClick}
       disabled={disabled || loading}
-      className={`px-4 py-2 rounded-full text-white font-bold transition-colors ${
-        isOn ? "bg-green-500 hover:bg-green-600" : "bg-red-500 hover:bg-red-600"
-      }`}
+      className={`
+        px-4 py-2 rounded-full font-bold transition-all cursor-pointer
+        flex items-center justify-center
+        text-white
+        ${isOn 
+          ? "bg-green-500 hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700" 
+          : "bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700"
+        }
+        ${disabled || loading ? "opacity-50 cursor-not-allowed" : ""}
+      `}
     >
-      {isOn ? "ON" : "OFF"}
+      {loading ? "..." : isOn ? "ON" : "OFF"}
     </button>
   );
 }

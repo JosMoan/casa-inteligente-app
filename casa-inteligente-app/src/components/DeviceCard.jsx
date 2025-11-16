@@ -7,7 +7,6 @@ export default function DeviceCard({ id, name }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Obtener estado actual desde backend
   useEffect(() => {
     const fetchStatus = async () => {
       try {
@@ -15,12 +14,7 @@ export default function DeviceCard({ id, name }) {
         const data = await res.json();
 
         if (res.ok) {
-          if (id === "cochera") setState(data.cochera);
-          else if (id === "cocina") setState(data.cocina);
-          else if (id === "dor1") setState(data.dor1);
-          else if (id === "dor2") setState(data.dor2); // ✅ agregado
-          else if (id === "sala") setState(data.sala); // ✅ agregado
-          else if (id === "bano") setState(data.bano); // ✅ agregado
+          setState(data[id]);
         }
       } catch (err) {
         console.error("❌ Error al obtener estado del LED:", err);
@@ -54,17 +48,36 @@ export default function DeviceCard({ id, name }) {
   };
 
   return (
-    <div className="bg-gray-800 p-6 rounded-2xl shadow-lg w-80 transition-transform hover:scale-105 duration-200">
-      <h3 className="text-xl font-semibold mb-2 text-white">{name}</h3>
-      <p className="mb-4 text-sm text-gray-400">ID: {id}</p>
+    <div
+      className="
+        bg-white dark:bg-gray-800
+        text-gray-900 dark:text-gray-100
+        p-6 rounded-2xl shadow-md
+        border border-gray-300 dark:border-gray-700
+        transition-all duration-300
+        hover:shadow-lg dark:hover:shadow-gray-900/40
+        w-full max-w-sm
+      "
+    >
+      <h3 className="text-xl font-semibold mb-2">
+        {name}
+      </h3>
+
+      <p className="mb-4 text-sm text-gray-600 dark:text-gray-300">
+        ID: {id}
+      </p>
 
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm text-gray-300 mb-1">Estado actual:</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+            Estado actual:
+          </p>
+
           <p
-            className={`text-lg font-bold transition-colors duration-300 ${
-              state ? "text-green-400" : "text-red-400"
-            }`}
+            className={`
+              text-lg font-bold transition-colors
+              ${state ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}
+            `}
           >
             {state ? "Encendido" : "Apagado"}
           </p>
@@ -78,7 +91,11 @@ export default function DeviceCard({ id, name }) {
         />
       </div>
 
-      {error && <p className="text-red-400 text-xs mt-3">⚠️ {error}</p>}
+      {error && (
+        <p className="text-red-500 dark:text-red-400 text-xs mt-3">
+          ⚠️ {error}
+        </p>
+      )}
     </div>
   );
 }

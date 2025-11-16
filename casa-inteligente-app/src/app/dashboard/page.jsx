@@ -1,53 +1,56 @@
 "use client";
-import { useEffect, useState } from "react";
+
+import { useState, useEffect } from "react";
+import { deleteCookie } from "cookies-next";
 import { useRouter } from "next/navigation";
-import Header from "@/components/Header";
-import DeviceCard from "@/components/DeviceCard";
 
-export default function Dashboard() {
+import Sidebar from "../components/Sidebar/Sidebar";
+import MainSection from "./main/page";
+import LucesLeds from "./panel-control/luces/luces-leds";
+import PerfilSection from "./perfil/PerfilSection";
+import ChatbotSection from "./chatbot/ChatbotSection";
+
+export default function DashboardPage() {
   const router = useRouter();
-  const [user, setUser] = useState(null);
-
-  const [devices, setDevices] = useState([
-    { id: "cochera", name: "Luz Cochera", initial: false },
-    { id: "cocina", name: "Luz Cocina", initial: false },
-    { id: "dor1", name: "Dormitorio 1", initial: false },
-    { id: "dor2", name: "Dormitorio 2", initial: false }, // ✅ NUEVA TARJETA
-    { id: "sala", name: "Sala", initial: false }, // ✅ NUEVA TARJETA
-    { id: "bano", name: "Baño", initial: false }, // ✅ NUEVA TARJETA
-  ]);
+  const [section, setSection] = useState("main");
+  const [darkMode, setDarkMode] = useState(false);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (!storedUser) router.push("/login");
-    else setUser(JSON.parse(storedUser));
-  }, [router]);
+    if (darkMode) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, [darkMode]);
+
+  const handleLogout = () => {
+    deleteCookie("token");
+    deleteCookie("user");
+    router.push("/login");
+  };
 
   return (
-    <>
-      <Header />
-      <main className="min-h-screen bg-gray-900 text-white py-12">
-        <div className="max-w-4xl mx-auto px-6">
-          <h2 className="text-3xl font-bold mb-6">
-            Panel de control {user && <span className="text-blue-400">{user.nombre}</span>}
-          </h2>
+    <div
+      className={`flex h-screen transition-colors duration-300 
+      ${darkMode ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-900"}`}
+    >
+      {/* Sidebar */}
+      <Sidebar
+        current={section}
+        setCurrent={setSection}
+        onLogout={handleLogout}
+        darkMode={darkMode}
+        setDarkMode={setDarkMode}
+      />
 
-          <p className="text-gray-400 mb-10">
-            Controla los dispositivos de tu casa inteligente
-          </p>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {devices.map((d) => (
-              <DeviceCard
-                key={d.id}
-                id={d.id}
-                name={d.name}
-                initialState={d.initial}
-              />
-            ))}
-          </div>
-        </div>
-      </main>
-    </>
+      {/* Contenido dinámico */}
+      <div className="flex-1 overflow-y-auto p-0">
+        {section === "main" && <MainSection />}
+        {section === "panel" && <PanelSection />}
+        {section === "luces" && <LucesLeds />}
+        {section === "perfil" && <PerfilSection />}
+        {section === "chatbot" && <ChatbotSection />}
+      </div>
+    </div>
   );
 }
