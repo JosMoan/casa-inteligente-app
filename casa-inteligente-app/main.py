@@ -33,6 +33,27 @@ app.add_middleware(
 # --- IP del ESP8266 ---
 ESP_IP = "http://192.168.1.20"
 
+# --- Mapas de LEDs y puertas ---
+led_map = {
+    "cochera": "COCHERA",
+    "cocina": "COCINA",
+    "dor1": "DOR1",
+    "dor2": "DOR2",
+    "sala": "SALA",
+    "bano": "BANO"
+}
+
+door_map = {
+    "p1": "DOOR_BANO",
+    "p2": "DOOR_DOR1",
+    "p3": "DOOR_DOR2"
+}
+
+garage_map = {
+    "open": "COCHERA_ON",
+    "close": "COCHERA_OFF"
+}
+
 # -------------------- Rutas básicas --------------------
 @app.get("/")
 def read_root():
@@ -77,17 +98,14 @@ def login_user(user: dict):
 # -------------------- LEDs --------------------
 @app.post("/led/{room}/{state}")
 def control_led(room: str, state: str):
-    valid_rooms = ["cochera", "cocina", "dor1", "dor2", "sala", "bano"]
-    valid_states = ["on", "off"]
-
-    if room.lower() not in valid_rooms:
+    if room.lower() not in led_map:
         raise HTTPException(status_code=400, detail="Habitación no válida")
-    if state.lower() not in valid_states:
+    if state.lower() not in ["on", "off"]:
         raise HTTPException(status_code=400, detail="Estado inválido")
 
     try:
-        url = f"{ESP_IP}/{room.upper()}_{state.upper()}"
-        response = requests.get(url, timeout=3)
+        url = f"{ESP_IP}/{led_map[room.lower()]}_{state.upper()}"
+        response = requests.get(url, timeout=5)
         if response.status_code == 200:
             return {"status": "ok", "room": room, "state": state}
         else:
@@ -97,12 +115,11 @@ def control_led(room: str, state: str):
 
 @app.get("/led/status")
 def get_led_status():
-    rooms = ["cochera", "cocina", "dor1", "dor2", "sala", "bano"]
     status = {}
-    for room in rooms:
+    for room, esp_name in led_map.items():
         try:
-            url = f"{ESP_IP}/{room.upper()}_STATUS"
-            response = requests.get(url, timeout=3)
+            url = f"{ESP_IP}/{esp_name}_STATUS"
+            response = requests.get(url, timeout=5)
             if response.status_code == 200:
                 text = response.text.strip().upper()
                 status[room] = True if text == "ON" else False
@@ -112,20 +129,17 @@ def get_led_status():
             status[room] = None
     return status
 
-# -------------------- Puertas (manuales) --------------------
+# -------------------- Puertas --------------------
 @app.post("/door/{door_id}/{action}")
 def control_door(door_id: str, action: str):
-    valid_doors = ["p1", "p2", "p3"]
-    valid_actions = ["open", "close"]
-
-    if door_id.lower() not in valid_doors:
+    if door_id.lower() not in door_map:
         raise HTTPException(status_code=400, detail="Puerta no válida")
-    if action.lower() not in valid_actions:
+    if action.lower() not in ["open", "close"]:
         raise HTTPException(status_code=400, detail="Acción inválida")
 
     try:
-        url = f"{ESP_IP}/{door_id.upper()}_{action.upper()}"
-        response = requests.get(url, timeout=3)
+        url = f"{ESP_IP}/{door_map[door_id.lower()]}?action={action.lower()}"
+        response = requests.get(url, timeout=5)
         if response.status_code == 200:
             return {"status": "ok", "door": door_id, "action": action}
         else:
@@ -135,26 +149,25 @@ def control_door(door_id: str, action: str):
 
 @app.get("/door/status")
 def get_door_status():
-    doors = ["p1", "p2", "p3"]
     status = {}
-    for door in doors:
+    for door_id, esp_name in door_map.items():
         try:
-            url = f"{ESP_IP}/{door.upper()}_STATUS"
-            response = requests.get(url, timeout=3)
+            url = f"{ESP_IP}/{esp_name}_STATUS"
+            response = requests.get(url, timeout=5)
             if response.status_code == 200:
                 text = response.text.strip().upper()
-                status[door] = True if text in ["OPEN", "ABIERTO"] else False
+                status[door_id] = True if text == "OPEN" else False
             else:
-                status[door] = None
+                status[door_id] = None
         except requests.exceptions.RequestException:
-            status[door] = None
+            status[door_id] = None
     return status
 
-# -------------------- Cochera + Distancia (Arduino esclavo) --------------------
+# -------------------- Cochera / Garage --------------------
 @app.get("/garage/status")
 def garage_status():
     try:
-        res = requests.get(f"{ESP_IP}/DISTANCIA", timeout=2)
+        res = requests.get(f"{ESP_IP}/DISTANCIA", timeout=5)
         if res.ok:
             distancia, estado = res.text.strip().split(",")
             return {
@@ -164,3 +177,17 @@ def garage_status():
     except requests.exceptions.RequestException:
         pass
     return {"door_open": None, "distance_cm": None}
+
+@app.post("/garage/{action}")
+def control_garage(action: str):
+    if action.lower() not in garage_map:
+        raise HTTPException(status_code=400, detail="Acción inválida")
+    try:
+        url = f"{ESP_IP}/{garage_map[action.lower()]}"
+        response = requests.get(url, timeout=5)
+        if response.status_code == 200:
+            return {"status": "ok", "door": "cochera", "action": action}
+        else:
+            return {"status": "error", "message": "ESP8266 no respondió"}
+    except requests.exceptions.RequestException as e:
+        return {"status": "error", "message": str(e)}

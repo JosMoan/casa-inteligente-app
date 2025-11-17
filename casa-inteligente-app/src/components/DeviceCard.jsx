@@ -3,27 +3,33 @@ import { useState, useEffect } from "react";
 import ToggleButton from "./ToggleButton";
 
 export default function DeviceCard({ id, name, tipo = "led" }) {
-  const [state, setState] = useState(false);       // LED o puerta
-  const [doorOpen, setDoorOpen] = useState(false); // solo para cochera
-  const [distance, setDistance] = useState(null);  // solo para cochera
+  const [state, setState] = useState(false);       // LED o puerta manual
+  const [doorOpen, setDoorOpen] = useState(false); // Cochera
+  const [distance, setDistance] = useState(null);  // Cochera
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  // Mapear tipo de dispositivo y endpoints
+  const isGarage = id === "p4";
+  const isManualDoor = tipo === "manual";
+  const isLed = tipo === "led";
 
   useEffect(() => {
     const fetchStatus = async () => {
       try {
-        if (tipo === "led") {
-          const res = await fetch("http://localhost:5000/led/status");
-          const data = await res.json();
-          if (res.ok) setState(data[id]);
-        } else if (tipo === "manual") {
-          const res = await fetch("http://localhost:5000/door/status");
-          const data = await res.json();
-          if (res.ok) setState(data[id]);
-        } else if (id === "p4") {
-          // Tarjeta cochera -> Arduino esclavo
-          const res = await fetch("http://localhost:5000/garage/status");
-          const data = await res.json();
+        let res, data;
+
+        if (isLed) {
+          res = await fetch("http://localhost:5000/led/status");
+          data = await res.json();
+          if (res.ok && data[id] !== undefined) setState(data[id]);
+        } else if (isManualDoor) {
+          res = await fetch("http://localhost:5000/door/status");
+          data = await res.json();
+          if (res.ok && data[id] !== undefined) setState(data[id]);
+        } else if (isGarage) {
+          res = await fetch("http://localhost:5000/garage/status");
+          data = await res.json();
           if (res.ok) {
             setDoorOpen(data.door_open);
             setDistance(data.distance_cm);
@@ -37,25 +43,25 @@ export default function DeviceCard({ id, name, tipo = "led" }) {
 
     fetchStatus();
 
-    // Actualizar cada 2 segundos si es cochera o sensor
+    // Actualizar cada 2 segundos si es cochera
     let interval = null;
-    if (tipo === "sensor" || id === "p4") {
+    if (isGarage) {
       interval = setInterval(fetchStatus, 2000);
     }
     return () => clearInterval(interval);
   }, [id, tipo]);
 
   const handleToggle = async (newState) => {
-    if (tipo === "sensor" || id === "p4") return;
+    if (isGarage) return; // No toggle directo para cochera
 
     setLoading(true);
     setError(null);
 
     try {
       let url = "";
-      if (tipo === "led") {
+      if (isLed) {
         url = `http://localhost:5000/led/${id}/${newState ? "on" : "off"}`;
-      } else if (tipo === "manual") {
+      } else if (isManualDoor) {
         url = `http://localhost:5000/door/${id}/${newState ? "open" : "close"}`;
       }
 
@@ -80,7 +86,7 @@ export default function DeviceCard({ id, name, tipo = "led" }) {
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Estado actual:</p>
-          {id === "p4" ? (
+          {isGarage ? (
             <>
               <p className={`text-lg font-bold transition-colors ${doorOpen ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
                 {doorOpen ? "Abierta" : "Cerrada"}
@@ -91,12 +97,12 @@ export default function DeviceCard({ id, name, tipo = "led" }) {
             </>
           ) : (
             <p className={`text-lg font-bold transition-colors ${state ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
-              {tipo === "led" ? (state ? "Encendido" : "Apagado") : (state ? "Abierta" : "Cerrada")}
+              {isLed ? (state ? "Encendido" : "Apagado") : (state ? "Abierta" : "Cerrada")}
             </p>
           )}
         </div>
 
-        {tipo !== "sensor" && id !== "p4" && (
+        {!isGarage && !tipo.includes("sensor") && (
           <ToggleButton deviceId={id} initial={state} disabled={loading} onToggle={handleToggle} />
         )}
       </div>

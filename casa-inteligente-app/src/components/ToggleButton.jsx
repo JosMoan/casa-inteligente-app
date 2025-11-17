@@ -5,16 +5,26 @@ export default function ToggleButton({ deviceId, initial = false, disabled, onTo
   const [isOn, setIsOn] = useState(initial);
   const [loading, setLoading] = useState(false);
 
+  // Sincroniza el estado interno con el prop `initial` cuando cambia
   useEffect(() => {
     setIsOn(initial);
   }, [initial]);
 
   const handleClick = async () => {
+    if (disabled || loading) return; // evita doble click
+
     const newState = !isOn;
-    setIsOn(newState);
+    setIsOn(newState); // Cambio visual inmediato
     setLoading(true);
 
-    if (onToggle) await onToggle(newState);
+    try {
+      if (onToggle) {
+        await onToggle(newState); // Llama a la función pasada por props
+      }
+    } catch (err) {
+      console.error("❌ Error al cambiar estado:", err);
+      setIsOn(!newState); // Revertir cambio si falla
+    }
 
     setLoading(false);
   };

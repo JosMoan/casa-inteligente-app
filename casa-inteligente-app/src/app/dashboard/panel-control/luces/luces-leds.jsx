@@ -30,7 +30,7 @@ export default function LucesLeds() {
       <div className="px-6 pt-6">
 
         <h2 className="text-3xl font-bold mb-4">
-          Panel de control{" "}
+          Control de luces{" "}
           {user && (
             <span className="text-blue-600 dark:text-blue-400">
               {user.nombre}
