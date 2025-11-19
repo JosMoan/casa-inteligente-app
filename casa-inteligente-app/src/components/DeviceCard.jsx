@@ -2,46 +2,74 @@
 import { useState, useEffect } from "react";
 import ToggleButton from "./ToggleButton";
 
-export default function DeviceCard({ id, name }) {
-  const [state, setState] = useState(false);
+export default function DeviceCard({ id, name, tipo = "led" }) {
+  const [state, setState] = useState(false);       // LED o puerta manual
+  const [doorOpen, setDoorOpen] = useState(false); // Cochera
+  const [distance, setDistance] = useState(null);  // Cochera
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Obtener estado actual desde backend
+  // Mapear tipo de dispositivo y endpoints
+  const isGarage = id === "p4";
+  const isManualDoor = tipo === "manual";
+  const isLed = tipo === "led";
+
   useEffect(() => {
     const fetchStatus = async () => {
       try {
-        const res = await fetch("http://localhost:5000/led/status");
-        const data = await res.json();
+        let res, data;
 
-        if (res.ok) {
-          if (id === "cochera") setState(data.cochera);
-          else if (id === "cocina") setState(data.cocina);
-          else if (id === "dor1") setState(data.dor1);
+        if (isLed) {
+          res = await fetch("http://localhost:5000/led/status");
+          data = await res.json();
+          if (res.ok && data[id] !== undefined) setState(data[id]);
+        } else if (isManualDoor) {
+          res = await fetch("http://localhost:5000/door/status");
+          data = await res.json();
+          if (res.ok && data[id] !== undefined) setState(data[id]);
+        } else if (isGarage) {
+          res = await fetch("http://localhost:5000/garage/status");
+          data = await res.json();
+          if (res.ok) {
+            setDoorOpen(data.door_open);
+            setDistance(data.distance_cm);
+          }
         }
       } catch (err) {
-        console.error("❌ Error al obtener estado del LED:", err);
+        console.error("❌ Error al obtener estado:", err);
+        setError("No se pudo obtener el estado");
       }
     };
+
     fetchStatus();
-  }, [id]);
+
+    // Actualizar cada 2 segundos si es cochera
+    let interval = null;
+    if (isGarage) {
+      interval = setInterval(fetchStatus, 2000);
+    }
+    return () => clearInterval(interval);
+  }, [id, tipo]);
 
   const handleToggle = async (newState) => {
+    if (isGarage) return; // No toggle directo para cochera
+
     setLoading(true);
     setError(null);
 
     try {
-      const res = await fetch(
-        `http://localhost:5000/led/${id}/${newState ? "on" : "off"}`,
-        { method: "POST" }
-      );
+      let url = "";
+      if (isLed) {
+        url = `http://localhost:5000/led/${id}/${newState ? "on" : "off"}`;
+      } else if (isManualDoor) {
+        url = `http://localhost:5000/door/${id}/${newState ? "open" : "close"}`;
+      }
+
+      const res = await fetch(url, { method: "POST" });
       const data = await res.json();
 
-      if (res.ok && data.status === "ok") {
-        setState(newState);
-      } else {
-        throw new Error(data.message || "Error al cambiar estado del dispositivo");
-      }
+      if (res.ok && data.status === "ok") setState(newState);
+      else throw new Error(data.message || "Error al cambiar estado");
     } catch (err) {
       console.error("❌ Error:", err);
       setError("No se pudo conectar al dispositivo");
@@ -51,31 +79,35 @@ export default function DeviceCard({ id, name }) {
   };
 
   return (
-    <div className="bg-gray-800 p-6 rounded-2xl shadow-lg w-80 transition-transform hover:scale-105 duration-200">
-      <h3 className="text-xl font-semibold mb-2 text-white">{name}</h3>
-      <p className="mb-4 text-sm text-gray-400">ID: {id}</p>
+    <div className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 p-6 rounded-2xl shadow-md border border-gray-300 dark:border-gray-700 w-full max-w-sm transition-all duration-300 hover:shadow-lg dark:hover:shadow-gray-900/40">
+      <h3 className="text-xl font-semibold mb-2">{name}</h3>
+      <p className="mb-4 text-sm text-gray-600 dark:text-gray-300">ID: {id}</p>
 
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm text-gray-300 mb-1">Estado actual:</p>
-          <p
-            className={`text-lg font-bold transition-colors duration-300 ${
-              state ? "text-green-400" : "text-red-400"
-            }`}
-          >
-            {state ? "Encendido" : "Apagado"}
-          </p>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Estado actual:</p>
+          {isGarage ? (
+            <>
+              <p className={`text-lg font-bold transition-colors ${doorOpen ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                {doorOpen ? "Abierta" : "Cerrada"}
+              </p>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                Distancia: {distance !== null ? `${distance} cm` : "--"}
+              </p>
+            </>
+          ) : (
+            <p className={`text-lg font-bold transition-colors ${state ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+              {isLed ? (state ? "Encendido" : "Apagado") : (state ? "Abierta" : "Cerrada")}
+            </p>
+          )}
         </div>
 
-        <ToggleButton
-          deviceId={id}
-          initial={state}
-          disabled={loading}
-          onToggle={handleToggle}
-        />
+        {!isGarage && !tipo.includes("sensor") && (
+          <ToggleButton deviceId={id} initial={state} disabled={loading} onToggle={handleToggle} />
+        )}
       </div>
 
-      {error && <p className="text-red-400 text-xs mt-3">⚠️ {error}</p>}
+      {error && <p className="text-red-500 dark:text-red-400 text-xs mt-3">⚠️ {error}</p>}
     </div>
   );
 }

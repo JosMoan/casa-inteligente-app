@@ -19,7 +19,7 @@ def get_connection():
             return connection
     except Error as e:
         print("Error al conectar a MySQL:", e)
-        return None
+    return None
 
 # --- CORS ---
 app.add_middleware(
@@ -30,23 +30,36 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- Endpoints básicos ---
+# --- IP del ESP8266 ---
+ESP_IP = "http://192.168.1.20"
+
+# --- Mapas de LEDs y puertas ---
+led_map = {
+    "cochera": "COCHERA",
+    "cocina": "COCINA",
+    "dor1": "DOR1",
+    "dor2": "DOR2",
+    "sala": "SALA",
+    "bano": "BANO"
+}
+
+door_map = {
+    "p1": "DOOR_BANO",
+    "p2": "DOOR_DOR1",
+    "p3": "DOOR_DOR2"
+}
+
+garage_map = {
+    "open": "COCHERA_ON",
+    "close": "COCHERA_OFF"
+}
+
+# -------------------- Rutas básicas --------------------
 @app.get("/")
 def read_root():
     return {"message": "API FastAPI funcionando ✅"}
 
-@app.get("/db-test")
-def db_test():
-    conn = get_connection()
-    if not conn:
-        return {"status": "error", "message": "❌ No se pudo conectar"}
-    cursor = conn.cursor()
-    cursor.execute("SELECT DATABASE();")
-    db_name = cursor.fetchone()
-    conn.close()
-    return {"status": "ok", "database": db_name}
-
-# --- Registro de usuario ---
+# -------------------- Usuarios --------------------
 @app.post("/register")
 def register_user(user: dict):
     conn = get_connection()
@@ -66,7 +79,6 @@ def register_user(user: dict):
     finally:
         conn.close()
 
-# --- Login ---
 @app.post("/login")
 def login_user(user: dict):
     conn = get_connection()
@@ -83,23 +95,17 @@ def login_user(user: dict):
         raise HTTPException(status_code=401, detail="Credenciales incorrectas")
     return {"mensaje": "✅ Login exitoso", "usuario": usuario}
 
-# --- IP del ESP8266 ---
-ESP_IP = "http://192.168.1.100"
-
-# --- Control de luces ---
+# -------------------- LEDs --------------------
 @app.post("/led/{room}/{state}")
 def control_led(room: str, state: str):
-    valid_rooms = ["cochera", "cocina", "dor1"]
-    valid_states = ["on", "off"]
-
-    if room.lower() not in valid_rooms:
+    if room.lower() not in led_map:
         raise HTTPException(status_code=400, detail="Habitación no válida")
-    if state.lower() not in valid_states:
+    if state.lower() not in ["on", "off"]:
         raise HTTPException(status_code=400, detail="Estado inválido")
 
     try:
-        url = f"{ESP_IP}/{room.upper()}_{state.upper()}"
-        response = requests.get(url, timeout=3)
+        url = f"{ESP_IP}/{led_map[room.lower()]}_{state.upper()}"
+        response = requests.get(url, timeout=5)
         if response.status_code == 200:
             return {"status": "ok", "room": room, "state": state}
         else:
@@ -107,15 +113,13 @@ def control_led(room: str, state: str):
     except requests.exceptions.RequestException as e:
         return {"status": "error", "message": str(e)}
 
-# --- Obtener estado actual de los LEDs ---
 @app.get("/led/status")
 def get_led_status():
-    rooms = ["cochera", "cocina", "dor1"]
     status = {}
-    for room in rooms:
+    for room, esp_name in led_map.items():
         try:
-            url = f"{ESP_IP}/{room.upper()}_STATUS"
-            response = requests.get(url, timeout=3)
+            url = f"{ESP_IP}/{esp_name}_STATUS"
+            response = requests.get(url, timeout=5)
             if response.status_code == 200:
                 text = response.text.strip().upper()
                 status[room] = True if text == "ON" else False
@@ -124,3 +128,66 @@ def get_led_status():
         except requests.exceptions.RequestException:
             status[room] = None
     return status
+
+# -------------------- Puertas --------------------
+@app.post("/door/{door_id}/{action}")
+def control_door(door_id: str, action: str):
+    if door_id.lower() not in door_map:
+        raise HTTPException(status_code=400, detail="Puerta no válida")
+    if action.lower() not in ["open", "close"]:
+        raise HTTPException(status_code=400, detail="Acción inválida")
+
+    try:
+        url = f"{ESP_IP}/{door_map[door_id.lower()]}?action={action.lower()}"
+        response = requests.get(url, timeout=5)
+        if response.status_code == 200:
+            return {"status": "ok", "door": door_id, "action": action}
+        else:
+            return {"status": "error", "message": "ESP8266 no respondió"}
+    except requests.exceptions.RequestException as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/door/status")
+def get_door_status():
+    status = {}
+    for door_id, esp_name in door_map.items():
+        try:
+            url = f"{ESP_IP}/{esp_name}_STATUS"
+            response = requests.get(url, timeout=5)
+            if response.status_code == 200:
+                text = response.text.strip().upper()
+                status[door_id] = True if text == "OPEN" else False
+            else:
+                status[door_id] = None
+        except requests.exceptions.RequestException:
+            status[door_id] = None
+    return status
+
+# -------------------- Cochera / Garage --------------------
+@app.get("/garage/status")
+def garage_status():
+    try:
+        res = requests.get(f"{ESP_IP}/DISTANCIA", timeout=5)
+        if res.ok:
+            distancia, estado = res.text.strip().split(",")
+            return {
+                "door_open": True if estado.upper() == "OPEN" else False,
+                "distance_cm": int(distancia)
+            }
+    except requests.exceptions.RequestException:
+        pass
+    return {"door_open": None, "distance_cm": None}
+
+@app.post("/garage/{action}")
+def control_garage(action: str):
+    if action.lower() not in garage_map:
+        raise HTTPException(status_code=400, detail="Acción inválida")
+    try:
+        url = f"{ESP_IP}/{garage_map[action.lower()]}"
+        response = requests.get(url, timeout=5)
+        if response.status_code == 200:
+            return {"status": "ok", "door": "cochera", "action": action}
+        else:
+            return {"status": "error", "message": "ESP8266 no respondió"}
+    except requests.exceptions.RequestException as e:
+        return {"status": "error", "message": str(e)}

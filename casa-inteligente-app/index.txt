@@ -25,3 +25,6 @@ git fetch origin -> traer los cambios de las ramas locales y el principal
 git merge origin/main -> Fusiona los cambios del main en tu rama
 git merge origin/rama-compañero -> Fusiona los cambios de tu compañero a tu rama
 git merge --abort -> abortar el merge por si hay conflictos
+git checkout "nombre de la rama" -> Cambiarse de rama
+git branch -D "nombre de la rama a eliminar" -> Eliminar rama
+git reset --hard -> # descarta TODOS los cambios locales en tu rama actual
