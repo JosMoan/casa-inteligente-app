@@ -5,7 +5,12 @@ import { useRouter } from "next/navigation";
 
 export default function Sidebar({ current, setCurrent, darkMode, setDarkMode }) {
     const router = useRouter();
-    const [openPanel, closePanel] = useState(false);
+
+    // Sidebar abierto/cerrado
+    const [collapsed, setCollapsed] = useState(false);
+
+    // Subpanel
+    const [openPanel, setOpenPanel] = useState(false);
 
     const handleLogout = () => {
         localStorage.removeItem("user");
@@ -14,144 +19,181 @@ export default function Sidebar({ current, setCurrent, darkMode, setDarkMode }) 
 
     return (
         <aside
-            className={`w-64 h-screen p-6 shadow-md border-r flex flex-col transition-colors duration-300
+            className={`
+                h-screen p-6 shadow-md border-r flex flex-col transition-all duration-300
                 ${darkMode ? "bg-gray-900 text-white border-gray-700" : "bg-white text-gray-800 border-gray-200"}
+                ${collapsed ? "w-20" : "w-64"}
             `}
         >
-            <h2 className="text-2xl font-bold mb-10">Casa Inteligente</h2>
+            {/* HEADER */}
+            <div className="flex items-center justify-between mb-10">
+                {/* Título */}
+                {!collapsed && <h2 className="text-2xl font-bold">Casa Inteligente</h2>}
 
+                {/* Botón colapsar */}
+                <button
+                    onClick={() => setCollapsed(!collapsed)}
+                    className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition"
+                >
+                    <i className={`bi ${collapsed ? "bi-arrow-right-square" : "bi-arrow-left-square"} text-xl`} />
+                </button>
+            </div>
+
+            {/* NAV PRINCIPAL */}
             <nav className="flex flex-col gap-3">
 
+                {/* Inicio */}
                 <button
                     onClick={() => setCurrent("main")}
-                    className={`px-3 py-2 text-left rounded-lg transition cursor-pointer ${
-                        current === "main"
+                    className={`px-3 py-2 rounded-lg transition cursor-pointer flex items-center gap-3
+                        ${current === "main"
                             ? darkMode
                                 ? "bg-gray-700 text-white font-semibold"
                                 : "bg-blue-100 text-blue-700 font-semibold"
                             : darkMode
                                 ? "hover:bg-gray-800"
                                 : "hover:bg-gray-100"
-                    }`}
+                        }`}
                 >
-                    Inicio
+                    <i className="bi bi-house text-xl"></i>
+                    {!collapsed && "Inicio"}
                 </button>
 
+                {/* PANEL DE CONTROL */}
                 <div>
                     <button
-                        onClick={() => closePanel(!openPanel)}
-                        className={`px-3 py-2 text-left rounded-lg w-full transition cursor-pointer ${
-                            ["panel", "luces", "cochera", "puertas"].includes(current)
+                        onClick={() => collapsed || setOpenPanel(!openPanel)}
+                        className={`px-3 py-2 rounded-lg w-full transition cursor-pointer flex items-center gap-3
+                            ${["panel", "luces", "cochera", "puerta"].includes(current)
                                 ? darkMode
                                     ? "bg-gray-700 text-white font-semibold"
                                     : "bg-blue-100 text-blue-700 font-semibold"
                                 : darkMode
                                     ? "hover:bg-gray-800"
                                     : "hover:bg-gray-100"
-                        }`}
+                            }`}
                     >
-                        Panel de control
+                        <i className="bi bi-card-list text-xl"></i>
+                        {!collapsed && "Panel de control"}
                     </button>
 
-                    {openPanel && (
+                    {/* Submenú solo si sidebar no está colapsado */}
+                    {!collapsed && openPanel && (
                         <div className="flex flex-col ml-4 mt-2 gap-2">
 
+                            {/* Luces */}
                             <button
                                 onClick={() => setCurrent("luces")}
-                                className={`px-3 py-2 text-left rounded-lg transition cursor-pointer ${
-                                    current === "luces"
+                                className={`px-3 py-2 rounded-lg transition cursor-pointer flex items-center gap-3
+                                    ${current === "luces"
                                         ? darkMode
                                             ? "bg-gray-700 text-white font-semibold"
                                             : "bg-blue-200 text-blue-800 font-semibold"
                                         : darkMode
                                             ? "hover:bg-gray-800"
                                             : "hover:bg-gray-100"
-                                }`}
+                                    }`}
                             >
-                                Luces LED
+                                <i className="bi bi-lightbulb-fill text-xl"></i>
+                                {!collapsed && "Luces LED"}
                             </button>
 
+                            {/* Cámara */}
                             <button
                                 onClick={() => setCurrent("cochera")}
-                                className={`px-3 py-2 text-left rounded-lg transition cursor-pointer ${
-                                    current === "cochera"
+                                className={`px-3 py-2 rounded-lg transition cursor-pointer flex items-center gap-3
+                                    ${current === "cochera"
                                         ? darkMode
                                             ? "bg-gray-700 text-white font-semibold"
                                             : "bg-blue-200 text-blue-800 font-semibold"
                                         : darkMode
                                             ? "hover:bg-gray-800"
                                             : "hover:bg-gray-100"
-                                }`}
+                                    }`}
                             >
-                                Cochera
+                                <i className="bi bi-webcam-fill text-xl"></i>
+                                {!collapsed && "Cámara"}
                             </button>
 
+                            {/* Puertas */}
                             <button
                                 onClick={() => setCurrent("puerta")}
-                                className={`px-3 py-2 text-left rounded-lg transition cursor-pointer ${
-                                    current === "puerta"
+                                className={`px-3 py-2 rounded-lg transition cursor-pointer flex items-center gap-3
+                                    ${current === "puerta"
                                         ? darkMode
                                             ? "bg-gray-700 text-white font-semibold"
                                             : "bg-blue-200 text-blue-800 font-semibold"
                                         : darkMode
                                             ? "hover:bg-gray-800"
                                             : "hover:bg-gray-100"
-                                }`}
+                                    }`}
                             >
-                                Puertas
+                                <i className="bi bi-door-closed-fill text-xl"></i>
+                                {!collapsed && "Puertas"}
                             </button>
                         </div>
                     )}
                 </div>
 
+                {/* Perfil */}
                 <button
                     onClick={() => setCurrent("perfil")}
-                    className={`px-3 py-2 text-left rounded-lg transition cursor-pointer ${
-                        current === "perfil"
+                    className={`px-3 py-2 rounded-lg transition cursor-pointer flex items-center gap-3
+                        ${current === "perfil"
                             ? darkMode
                                 ? "bg-gray-700 text-white font-semibold"
                                 : "bg-blue-100 text-blue-700 font-semibold"
                             : darkMode
                                 ? "hover:bg-gray-800"
                                 : "hover:bg-gray-100"
-                    }`}
+                        }`}
                 >
-                    Perfil
+                    <i className="bi bi-person-lines-fill text-xl"></i>
+                    {!collapsed && "Perfil"}
                 </button>
 
+                {/* Chatbot */}
                 <button
                     onClick={() => setCurrent("chatbot")}
-                    className={`px-3 py-2 text-left rounded-lg transition cursor-pointer ${
-                        current === "chatbot"
+                    className={`px-3 py-2 rounded-lg transition cursor-pointer flex items-center gap-3
+                        ${current === "chatbot"
                             ? darkMode
                                 ? "bg-gray-700 text-white font-semibold"
                                 : "bg-blue-100 text-blue-700 font-semibold"
                             : darkMode
                                 ? "hover:bg-gray-800"
                                 : "hover:bg-gray-100"
-                    }`}
+                        }`}
                 >
-                    Chatbot
+                    <i className="bi bi-robot text-xl"></i>
+                    {!collapsed && "Chatbot"}
                 </button>
+
             </nav>
 
+            {/* Línea divisora */}
             <div className="border-t mt-10 pt-6" />
 
-            {/* Botón de modo oscuro */}
+            {/* BOTÓN MODO OSCURO */}
             <button
                 onClick={() => setDarkMode(!darkMode)}
                 className="mb-4 w-full px-3 py-2 rounded-lg transition cursor-pointer
+                    flex items-center justify-center gap-2
                     bg-gray-200 hover:bg-gray-300 text-gray-800
                     dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-200"
             >
-                {darkMode ? "Modo Claro" : "Modo Oscuro"}
+                <i className={`bi ${darkMode ? "bi-sun-fill" : "bi-moon-fill"} text-xl`} />
+                {!collapsed && (darkMode ? "Modo Claro" : "Modo Oscuro")}
             </button>
 
+            {/* LOGOUT */}
             <button
                 onClick={handleLogout}
-                className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg transition cursor-pointer"
+                className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg
+                    transition cursor-pointer flex items-center justify-center gap-3"
             >
-                Cerrar sesión
+                <i className="bi bi-box-arrow-in-left text-xl"></i>
+                {!collapsed && "Cerrar sesión"}
             </button>
         </aside>
     );
