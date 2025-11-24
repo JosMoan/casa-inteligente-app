@@ -28,3 +28,6 @@ git merge --abort -> abortar el merge por si hay conflictos
 git checkout "nombre de la rama" -> Cambiarse de rama
 git branch -D "nombre de la rama a eliminar" -> Eliminar rama
 git reset --hard -> # descarta TODOS los cambios locales en tu rama actual
+git log --oneline -> Muestra commits anteriores
+git reset --hard "version del commit" -> Volver y borrar los commits actuales
+git push --force -> Forzar actualizacion de rama remota
