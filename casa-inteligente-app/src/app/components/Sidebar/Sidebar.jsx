@@ -64,7 +64,7 @@ export default function Sidebar({ current, setCurrent, darkMode, setDarkMode }) 
                     <button
                         onClick={() => collapsed || setOpenPanel(!openPanel)}
                         className={`px-3 py-2 rounded-lg w-full transition cursor-pointer flex items-center gap-3
-                            ${["panel", "luces", "cochera", "puerta"].includes(current)
+                            ${["panel", "luces", "camara", "puerta"].includes(current)
                                 ? darkMode
                                     ? "bg-gray-700 text-white font-semibold"
                                     : "bg-blue-100 text-blue-700 font-semibold"
@@ -100,9 +100,9 @@ export default function Sidebar({ current, setCurrent, darkMode, setDarkMode }) 
 
                             {/* Cámara */}
                             <button
-                                onClick={() => setCurrent("cochera")}
+                                onClick={() => setCurrent("camara")}
                                 className={`px-3 py-2 rounded-lg transition cursor-pointer flex items-center gap-3
-                                    ${current === "cochera"
+                                    ${current === "camara"
                                         ? darkMode
                                             ? "bg-gray-700 text-white font-semibold"
                                             : "bg-blue-200 text-blue-800 font-semibold"

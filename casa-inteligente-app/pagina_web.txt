@@ -1,0 +1,152 @@
+#include <ESP8266WiFi.h>
+#include <ESP8266WebServer.h>
+#include <Wire.h>
+
+const char* ssid = "ALEJANDRO-WIFI6";
+const char* password = "Patty2310";
+
+IPAddress local_IP(192,168,1,20);
+IPAddress gateway(192,168,1,1);
+IPAddress subnet(255,255,255,0);
+
+ESP8266WebServer server(80);
+
+#define ARDUINO_SLAVE 8   // Arduino Uno (garaje)
+#define ARDUINO_MEGA 9    // Arduino Mega (puertas)
+
+// Pines de LEDs
+const int ledCochera = D4;
+const int ledCocina  = D3;
+const int ledDor1    = D6;
+const int ledDor2    = D7;
+const int ledSala    = D8;
+const int ledBano    = D5;
+
+// ------------------ FUNCIONES LED ------------------
+void sendOn(int pin)  { digitalWrite(pin, HIGH); server.send(200, "text/plain", "ON"); }
+void sendOff(int pin) { digitalWrite(pin, LOW);  server.send(200, "text/plain", "OFF"); }
+
+void handleRoot() { 
+  server.send(200, "text/plain", "ESP8266 OK. LEDs activos. Recibiendo datos del Arduino.");
+}
+
+// --------------- LEER datos desde ARDUINO cochera --------------
+void handleDistancia() {
+  Wire.requestFrom(ARDUINO_SLAVE, 3);
+
+  if (Wire.available() == 3) {
+    byte doorByte = Wire.read();
+    byte highByte = Wire.read();
+    byte lowByte = Wire.read();
+
+    int distance = (highByte << 8) | lowByte;
+    String doorState = (doorByte == 1) ? "OPEN" : "CLOSED";
+
+    String data = String(distance) + "," + doorState;
+    server.send(200, "text/plain", data);
+  } else {
+    server.send(200, "text/plain", "0,CLOSED");
+  }
+}
+
+// ------------------ PUERTAS ARDUINO MEGA ------------------
+
+// Ahora soporta 4 puertas
+// 1=Baño, 2=Dor1, 3=Dor2, 4=Principal
+void sendDoorCommand(byte door, byte action) {
+  Wire.beginTransmission(ARDUINO_MEGA);
+  Wire.write(door);
+  Wire.write(action);  // 1=abrir, 0=cerrar
+  Wire.endTransmission();
+}
+
+// Lee 4 estados en vez de 3
+String readDoorStatus(byte door) {
+  Wire.requestFrom(ARDUINO_MEGA, 4); // AHORA SE PIDEN 4 ESTADOS
+
+  byte estados[4] = {0,0,0,0};
+  int i = 0;
+
+  while (Wire.available() && i < 4) {
+    estados[i++] = Wire.read();
+  }
+
+  switch(door) {
+    case 1: return estados[0] ? "OPEN" : "CLOSED";
+    case 2: return estados[1] ? "OPEN" : "CLOSED";
+    case 3: return estados[2] ? "OPEN" : "CLOSED";
+    case 4: return estados[3] ? "OPEN" : "CLOSED";
+  }
+
+  return "CLOSED";
+}
+
+// Manejar comando web para abrir/cerrar
+void handleDoor(byte doorId) {
+  if (server.hasArg("action")) {
+    String action = server.arg("action");
+    if (action.equalsIgnoreCase("open"))  sendDoorCommand(doorId, 1);
+    if (action.equalsIgnoreCase("close")) sendDoorCommand(doorId, 0);
+    delay(200);
+  }
+
+  String estado = readDoorStatus(doorId);
+  server.send(200, "text/plain", estado);
+}
+
+// Registrar rutas de las 4 puertas
+void setupMegaDoorsRoutes() {
+  server.on("/DOOR_BANO", [](){ handleDoor(1); });
+  server.on("/DOOR_DOR1", [](){ handleDoor(2); });
+  server.on("/DOOR_DOR2", [](){ handleDoor(3); });
+  server.on("/DOOR_PRIN", [](){ handleDoor(4); }); // ✔ NUEVA RUTA
+}
+
+void setup() {
+  Serial.begin(115200);
+
+  Wire.begin(D2, D1);  // SDA = D2, SCL = D1
+
+  WiFi.config(local_IP, gateway, subnet);
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) { delay(500); }
+
+  pinMode(ledCochera, OUTPUT);
+  pinMode(ledCocina,  OUTPUT);
+  pinMode(ledDor1,    OUTPUT);
+  pinMode(ledDor2,    OUTPUT);
+  pinMode(ledSala,    OUTPUT);
+  pinMode(ledBano,    OUTPUT);
+
+  // --- Rutas web ---
+  server.on("/", handleRoot);
+
+  server.on("/COCHERA_ON",  [](){ sendOn(ledCochera); });
+  server.on("/COCHERA_OFF", [](){ sendOff(ledCochera); });
+
+  server.on("/COCINA_ON",   [](){ sendOn(ledCocina); });
+  server.on("/COCINA_OFF",  [](){ sendOff(ledCocina); });
+
+  server.on("/DOR1_ON",     [](){ sendOn(ledDor1); });
+  server.on("/DOR1_OFF",    [](){ sendOff(ledDor1); });
+
+  server.on("/DOR2_ON",     [](){ sendOn(ledDor2); });
+  server.on("/DOR2_OFF",    [](){ sendOff(ledDor2); });
+
+  server.on("/SALA_ON",     [](){ sendOn(ledSala); });
+  server.on("/SALA_OFF",    [](){ sendOff(ledSala); });
+
+  server.on("/BANO_ON",     [](){ sendOn(ledBano); });
+  server.on("/BANO_OFF",    [](){ sendOff(ledBano); });
+
+  server.on("/DISTANCIA", handleDistancia);
+
+  // ---- PUERTAS DEL MEGA ----
+  setupMegaDoorsRoutes();
+
+  server.begin();
+}
+
+void loop() {
+  server.handleClient();
+}

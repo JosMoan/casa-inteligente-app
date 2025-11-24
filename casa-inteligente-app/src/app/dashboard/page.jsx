@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import Sidebar from "../components/Sidebar/Sidebar";
 import MainSection from "./main/page";
 import LucesLeds from "./panel-control/luces/luces-leds";
+import CameraPanel from "./panel-control/camara/camara";
 import PuertasServo from "./panel-control/puertas/puertas-servo";
 import PerfilSection from "./perfil/PerfilSection";
 import ChatbotSection from "./chatbot/ChatbotSection";
@@ -49,6 +50,7 @@ export default function DashboardPage() {
         {section === "main" && <MainSection />}
         {section === "panel" && <PanelSection />}
         {section === "luces" && <LucesLeds />}
+        {section === "camara"&& <CameraPanel/>}
         {section === "puerta"&& <PuertasServo/>}
         {section === "perfil" && <PerfilSection />}
         {section === "chatbot" && <ChatbotSection />}

@@ -43,10 +43,12 @@ led_map = {
     "bano": "BANO"
 }
 
+# 🔥🔥🔥 AQUÍ SE AGREGA BIEN LA PUERTA PRINCIPAL (p5)
 door_map = {
     "p1": "DOOR_BANO",
     "p2": "DOOR_DOR1",
-    "p3": "DOOR_DOR2"
+    "p3": "DOOR_DOR2",
+    "p5": "DOOR_PRIN"   # ✔ nombre corregido
 }
 
 garage_map = {
