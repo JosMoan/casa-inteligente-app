@@ -1,0 +1,89 @@
+#include <Wire.h>
+#include <Servo.h>
+
+Servo servoDor1;   // Dormitorio 1
+Servo servoBano;   // Baño
+Servo servoDor2;   // Dormitorio 2
+Servo servoPrin;   // Puerta Principal
+
+#define SLAVE_ADDRESS 9  // Dirección I2C del Mega
+
+// Estado de las puertas: 0 = cerrado, 1 = abierto
+byte estadoBano = 0;
+byte estadoDor1 = 0;
+byte estadoDor2 = 0;
+byte estadoPrin = 0; // Nuevo estado para la puerta principal
+
+void setup() {
+  // Inicializar servos
+  servoBano.attach(9);
+  servoDor1.attach(10);
+  servoDor2.attach(11);
+  servoPrin.attach(12); // Nuevo servo para puerta principal
+
+  // Poner todas las puertas cerradas al inicio
+  servoBano.write(0);
+  servoDor1.write(0);
+  servoDor2.write(0);
+  servoPrin.write(0);
+
+  // Inicializar I2C como esclavo
+  Wire.begin(SLAVE_ADDRESS);
+  Wire.onReceive(receiveCommand);
+  Wire.onRequest(sendStatus);
+
+  Serial.begin(9600);
+  Serial.println("Arduino Mega listo para I2C con 4 puertas.");
+}
+
+void loop() {
+  // Todo se maneja por interrupciones I2C
+}
+
+// Recibir comandos del ESP
+void receiveCommand(int bytes) {
+  if (Wire.available() < 2) return;  // Seguridad
+
+  byte door = Wire.read();   // 1 = Baño, 2 = Dor1, 3 = Dor2, 4 = Principal
+  byte action = Wire.read(); // 1 = abrir, 0 = cerrar
+
+  switch (door) {
+    case 1: // Baño
+      servoBano.write(action ? 180 : 0);
+      estadoBano = action;
+      break;
+
+    case 2: // Dormitorio 1
+      servoDor1.write(action ? 180 : 0);
+      estadoDor1 = action;
+      break;
+
+    case 3: // Dormitorio 2
+      servoDor2.write(action ? 180 : 0);
+      estadoDor2 = action;
+      break;
+
+    case 4: // Puerta Principal
+      servoPrin.write(action ? 180 : 0);
+      estadoPrin = action;
+      break;
+  }
+
+  Serial.print("Puerta ");
+  Serial.print(door);
+  Serial.print(" -> ");
+  Serial.println(action ? "OPEN" : "CLOSED");
+}
+
+// Enviar el estado de todas las puertas al ESP
+void sendStatus() {
+  // 🔥 IMPORTANTE: debe mantener el mismo orden que en door_map del ESP
+  byte estados[4] = {
+    estadoBano, // p1
+    estadoDor1, // p2
+    estadoDor2, // p3
+    estadoPrin  // p5
+  };
+
+  Wire.write(estados, 4);
+}

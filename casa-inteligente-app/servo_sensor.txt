@@ -1,0 +1,174 @@
+#include <Wire.h>
+#include <Servo.h>
+
+Servo s1;
+
+// Pines del sensor ultrasónico
+
+const int trigPin = 2;
+
+const int echoPin = 3;
+
+long duration;
+
+int distanceCm;
+
+// Estado del servo
+
+int currentPos = 0;
+
+String doorState = "CLOSED";
+
+
+
+// Tiempo que la puerta permanece abierta
+
+const int openHoldTime = 3000; // 3 segundos
+
+
+
+void setup() {
+
+Serial.begin(9600);
+
+
+
+// Sensor ultrasónico
+
+pinMode(trigPin, OUTPUT);
+
+pinMode(echoPin, INPUT);
+
+
+
+// Servo
+
+s1.attach(4);
+
+s1.write(0);
+
+currentPos = 0;
+
+
+
+// Iniciar como esclavo I2C en dirección 8
+
+Wire.begin(8);
+
+Wire.onRequest(requestEvent);
+
+
+
+Serial.println("Arduino esclavo listo.");
+
+}
+
+
+
+void loop() {
+
+medirDistancia();
+
+controlarPuerta();
+
+actualizarEstadoPuerta();
+
+}
+
+
+
+// ---------------- FUNCIONES ------------------
+
+
+
+void medirDistancia() {
+
+digitalWrite(trigPin, LOW);
+
+delayMicroseconds(2);
+
+digitalWrite(trigPin, HIGH);
+
+delayMicroseconds(10);
+
+digitalWrite(trigPin, LOW);
+
+
+
+duration = pulseIn(echoPin, HIGH, 20000); // timeout
+
+distanceCm = duration * 0.034 / 2;
+
+
+
+Serial.print("Distancia: ");
+
+Serial.print(distanceCm);
+
+Serial.println(" cm");
+
+}
+
+
+
+void controlarPuerta() {
+
+if (distanceCm > 0 && distanceCm < 30 && currentPos != 90) {
+
+for (int pos = currentPos; pos <= 90; pos++) {
+
+s1.write(pos);
+
+delay(15);
+
+}
+
+currentPos = 90;
+
+Serial.println("PUERTA ABIERTA");
+
+delay(openHoldTime);
+
+} else if ((distanceCm >= 30 || distanceCm == 0) && currentPos != 0) {
+
+for (int pos = currentPos; pos >= 0; pos--) {
+
+s1.write(pos);
+
+delay(15);
+
+}
+
+currentPos = 0;
+
+Serial.println("PUERTA CERRADA");
+
+delay(300);
+
+}
+
+}
+
+
+
+void actualizarEstadoPuerta() {
+
+doorState = (currentPos == 90) ? "OPEN" : "CLOSED";
+
+}
+
+
+
+// Enviar datos al ESP8266 de forma confiable (3 bytes)
+
+void requestEvent() {
+
+byte doorByte = (doorState == "OPEN") ? 1 : 0;
+
+Wire.write(doorByte); // estado puerta
+
+Wire.write((byte)(distanceCm >> 8)); // parte alta distancia
+
+Wire.write((byte)(distanceCm & 0xFF)); // parte baja distancia
+
+} 

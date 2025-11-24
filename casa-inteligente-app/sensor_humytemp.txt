@@ -1,0 +1,101 @@
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+#include "DHT.h"
+
+#define DHTPIN 7
+#define DHTTYPE DHT11
+DHT dht(DHTPIN, DHTTYPE);
+
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+#define SLAVE_ADDRESS 7
+
+float temperatura = 0;
+float humedad = 0;
+
+byte comando = 0;
+
+void setup() {
+Wire.begin(SLAVE_ADDRESS);
+Wire.onReceive(receiveEvent);
+Wire.onRequest(requestEvent);
+
+lcd.init();
+lcd.backlight();
+dht.begin();
+
+Serial.begin(9600);
+Serial.println("Arduino esclavo iniciado...");
+
+lcd.setCursor(0, 0);
+lcd.print("Iniciando...");
+delay(2000);
+lcd.clear();
+}
+
+void loop() {
+// Leer DHT11
+float h = dht.readHumidity();
+float t = dht.readTemperature();
+
+if (!isnan(h) && !isnan(t)) {
+humedad = h;
+temperatura = t;
+
+lcd.setCursor(0, 0);
+lcd.print("Temp: ");
+lcd.print(temperatura, 1);
+lcd.print((char)223);
+lcd.print("C   ");
+
+lcd.setCursor(0, 1);
+lcd.print("Humedad: ");
+lcd.print(humedad, 1);
+lcd.print("%   ");
+
+// Depuración Serial
+Serial.print("DHT preparado: ");
+Serial.print(temperatura, 1);
+Serial.print("|");
+Serial.println(humedad, 1);
+
+
+} else {
+lcd.clear();
+lcd.setCursor(0, 0);
+lcd.print("Error lectura");
+lcd.setCursor(0, 1);
+lcd.print("Sensor DHT11");
+Serial.println("Error lectura DHT11");
+}
+
+delay(2000); // Leer cada 2 segundos
+}
+
+// Recibir comando del maestro
+void receiveEvent(int howMany) {
+if (Wire.available()) {
+comando = Wire.read();
+Serial.print("Comando recibido: ");
+Serial.println(comando);
+}
+}
+
+// Enviar datos al maestro en formato binario
+void requestEvent() {
+if (comando == 1) {
+int tempInt = int(temperatura * 100); // 28.56 -> 2856
+int humInt  = int(humedad * 100);
+
+Wire.write(highByte(tempInt));
+Wire.write(lowByte(tempInt));
+Wire.write(highByte(humInt));
+Wire.write(lowByte(humInt));
+
+Serial.print("DHT enviado binario -> Temp: ");
+Serial.print(temperatura, 1);
+Serial.print(" Hum: ");
+Serial.println(humedad, 1);
+
+}
+}
