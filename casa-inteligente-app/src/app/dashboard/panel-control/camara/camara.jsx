@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 
 const CameraPanel = () => {
-  const BASE_URL = "http://192.168.1.120";
+  const BASE_URL = "http://10.43.96.188";
   const STREAM_URL = `${BASE_URL}:81/stream`;
 
   const [streamOn, setStreamOn] = useState(false);

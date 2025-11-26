@@ -31,7 +31,7 @@ app.add_middleware(
 )
 
 # --- IP del ESP8266 ---
-ESP_IP = "http://192.168.1.20"
+ESP_IP = "http://10.43.96.185"
 
 # --- Mapas de LEDs y puertas ---
 led_map = {
