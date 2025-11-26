@@ -1,4 +1,4 @@
-#include <ESP8266WiFi.h>
+#include <ESP8266WiFi.h> 
 #include <ESP8266WebServer.h>
 #include <Wire.h>
 
@@ -13,6 +13,7 @@ ESP8266WebServer server(80);
 
 #define ARDUINO_SLAVE 8   // Arduino Uno (garaje)
 #define ARDUINO_MEGA 9    // Arduino Mega (puertas)
+#define ARDUINO_DHT 7     // Arduino Uno (DHT11)
 
 // Pines de LEDs
 const int ledCochera = D4;
@@ -23,10 +24,11 @@ const int ledSala    = D8;
 const int ledBano    = D5;
 
 // ------------------ FUNCIONES LED ------------------
-void sendOn(int pin)  { digitalWrite(pin, HIGH); server.send(200, "text/plain", "ON"); }
-void sendOff(int pin) { digitalWrite(pin, LOW);  server.send(200, "text/plain", "OFF"); }
+void sendOn(int pin)  { digitalWrite(pin, HIGH); server.sendHeader("Access-Control-Allow-Origin", "*"); server.send(200, "text/plain", "ON"); }
+void sendOff(int pin) { digitalWrite(pin, LOW);  server.sendHeader("Access-Control-Allow-Origin", "*"); server.send(200, "text/plain", "OFF"); }
 
 void handleRoot() { 
+  server.sendHeader("Access-Control-Allow-Origin", "*");
   server.send(200, "text/plain", "ESP8266 OK. LEDs activos. Recibiendo datos del Arduino.");
 }
 
@@ -43,16 +45,16 @@ void handleDistancia() {
     String doorState = (doorByte == 1) ? "OPEN" : "CLOSED";
 
     String data = String(distance) + "," + doorState;
+
+    server.sendHeader("Access-Control-Allow-Origin", "*");
     server.send(200, "text/plain", data);
   } else {
+    server.sendHeader("Access-Control-Allow-Origin", "*");
     server.send(200, "text/plain", "0,CLOSED");
   }
 }
 
 // ------------------ PUERTAS ARDUINO MEGA ------------------
-
-// Ahora soporta 4 puertas
-// 1=Baño, 2=Dor1, 3=Dor2, 4=Principal
 void sendDoorCommand(byte door, byte action) {
   Wire.beginTransmission(ARDUINO_MEGA);
   Wire.write(door);
@@ -60,9 +62,8 @@ void sendDoorCommand(byte door, byte action) {
   Wire.endTransmission();
 }
 
-// Lee 4 estados en vez de 3
 String readDoorStatus(byte door) {
-  Wire.requestFrom(ARDUINO_MEGA, 4); // AHORA SE PIDEN 4 ESTADOS
+  Wire.requestFrom(ARDUINO_MEGA, 4);
 
   byte estados[4] = {0,0,0,0};
   int i = 0;
@@ -81,7 +82,6 @@ String readDoorStatus(byte door) {
   return "CLOSED";
 }
 
-// Manejar comando web para abrir/cerrar
 void handleDoor(byte doorId) {
   if (server.hasArg("action")) {
     String action = server.arg("action");
@@ -91,17 +91,50 @@ void handleDoor(byte doorId) {
   }
 
   String estado = readDoorStatus(doorId);
+  server.sendHeader("Access-Control-Allow-Origin", "*");
   server.send(200, "text/plain", estado);
 }
 
-// Registrar rutas de las 4 puertas
 void setupMegaDoorsRoutes() {
   server.on("/DOOR_BANO", [](){ handleDoor(1); });
   server.on("/DOOR_DOR1", [](){ handleDoor(2); });
   server.on("/DOOR_DOR2", [](){ handleDoor(3); });
-  server.on("/DOOR_PRIN", [](){ handleDoor(4); }); // ✔ NUEVA RUTA
+  server.on("/DOOR_PRIN", [](){ handleDoor(4); });
 }
 
+// ------------------ NUEVO ESCALVO DHT ------------------
+String readDHT() {
+  Wire.beginTransmission(ARDUINO_DHT);
+  Wire.write(1); // Enviar comando para que el Arduino Uno prepare los datos
+  Wire.endTransmission();
+
+  delay(50); // Espera un poco más para que Arduino prepare datos
+
+  Wire.requestFrom(ARDUINO_DHT, 4); // 4 bytes: Temp high/low, Hum high/low
+
+  if (Wire.available() == 4) {
+    int tempInt = (Wire.read() << 8) | Wire.read();
+    int humInt  = (Wire.read() << 8) | Wire.read();
+
+    float temperatura = tempInt / 100.0;
+    float humedad    = humInt / 100.0;
+
+    Serial.print("DHT leído -> Temp: "); Serial.print(temperatura); Serial.print(" Hum: "); Serial.println(humedad);
+
+    return String(temperatura, 1) + "," + String(humedad, 1); // CSV para JS
+  }
+
+  Serial.println("Error leyendo DHT");
+  return "0,0";
+}
+
+void handleDHT() {
+  String datos = readDHT();
+  server.sendHeader("Access-Control-Allow-Origin", "*");
+  server.send(200, "text/plain", datos);
+}
+
+// ------------------ SETUP ------------------
 void setup() {
   Serial.begin(115200);
 
@@ -143,6 +176,9 @@ void setup() {
 
   // ---- PUERTAS DEL MEGA ----
   setupMegaDoorsRoutes();
+
+  // ---- NUEVO DHT ----
+  server.on("/DHT", handleDHT);
 
   server.begin();
 }
