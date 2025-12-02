@@ -14,7 +14,7 @@ export default function DashboardHUD() {
   // Fetch de datos DHT cada 2 segundos
   useEffect(() => {
     const fetchDHT = setInterval(() => {
-      fetch("http://10.43.96.185/DHT", { mode: "cors" })
+      fetch("http://192.168.1.20/DHT", { mode: "cors" })
         .then(res => res.text())
         .then(data => {
           // Dividir CSV: "23.2,67.9"

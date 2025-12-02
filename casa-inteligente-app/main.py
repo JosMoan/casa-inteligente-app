@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import mysql.connector
 from mysql.connector import Error
 import requests
+from pydantic import BaseModel
 
 app = FastAPI()
 
@@ -31,7 +32,7 @@ app.add_middleware(
 )
 
 # --- IP del ESP8266 ---
-ESP_IP = "http://10.43.96.185"
+ESP_IP = "http://192.168.1.20"
 
 # --- Mapas de LEDs y puertas ---
 led_map = {
@@ -43,12 +44,11 @@ led_map = {
     "bano": "BANO"
 }
 
-# 🔥🔥🔥 AQUÍ SE AGREGA BIEN LA PUERTA PRINCIPAL (p5)
 door_map = {
     "p1": "DOOR_BANO",
     "p2": "DOOR_DOR1",
     "p3": "DOOR_DOR2",
-    "p5": "DOOR_PRIN"   # ✔ nombre corregido
+    "p5": "DOOR_PRIN"
 }
 
 garage_map = {
@@ -193,3 +193,49 @@ def control_garage(action: str):
             return {"status": "error", "message": "ESP8266 no respondió"}
     except requests.exceptions.RequestException as e:
         return {"status": "error", "message": str(e)}
+
+# -----------------------------------------------------------
+# -----------   IA LOCAL OLLAMA (INTEGRACIÓN)  --------------
+# -----------------------------------------------------------
+
+class IARequest(BaseModel):
+    message: str
+
+OLLAMA_URL = "http://localhost:11434/api/generate"
+MODEL_NAME = "qwen2.5:7b"
+
+@app.post("/ia/chat")
+def ia_chat(body: IARequest):
+    """
+    Recibe un mensaje desde tu página web y lo envía a Ollama para obtener una respuesta.
+    """
+    user_msg = body.message.strip()
+
+    if not user_msg:
+        raise HTTPException(status_code=400, detail="Falta el mensaje")
+
+    try:
+        response = requests.post(
+            OLLAMA_URL,
+            json={
+                "model": MODEL_NAME,
+                "prompt": user_msg,
+                "stream": False
+            },
+            timeout=60
+        )
+
+        if not response.ok:
+            raise Exception(response.text)
+
+        result = response.json()
+
+        return {
+            "reply": result.get("response", "No hubo respuesta del modelo")
+        }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error comunicando con Ollama: {e}"
+        )
